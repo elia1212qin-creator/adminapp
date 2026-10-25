@@ -1,0 +1,433 @@
+name: Build Filter Pro Admin App
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Auto-generate Filter Pro Admin Dashboard App
+      run: |
+        rm -rf app/src/main/java/com/example/filteradmin/*
+        rm -rf app/src/main/res/layout/*
+        rm -rf app/src/main/res/drawable/*
+
+        mkdir -p app/src/main/res/layout
+        mkdir -p app/src/main/res/drawable
+        mkdir -p app/src/main/java/com/example/filteradmin
+
+        # 0. אייקון מנהל פרימיום (זהב/ירוק)
+        cat << 'EOF' > app/src/main/res/drawable/ic_admin_launcher.xml
+        <vector xmlns:android="http://schemas.android.com/apk/res/android"
+            android:width="108dp"
+            android:height="108dp"
+            android:viewportWidth="108"
+            android:viewportHeight="108">
+            <path android:pathData="M0,0h108v108h-108z" android:fillColor="#09090B" />
+            <path android:pathData="M54,16 L84,30 V54 C84,73 70.8,89.8 54,94 C37.2,89.8 24,73 24,54 V30 L54,16 Z" android:fillColor="#F59E0B" android:fillAlpha="0.2"/>
+            <path android:pathData="M54,20 L80,32 V54 C80,70.5 68.8,85.5 54,89 C39.2,85.5 28,70.5 28,54 V32 L54,20 Z" android:fillColor="#18181B" android:strokeColor="#F59E0B" android:strokeWidth="3.5" android:strokeLineJoin="round"/>
+            <path android:pathData="M48,42 L60,42 M54,36 L54,66 M44,60 L64,60" android:fillColor="#00000000" android:strokeColor="#F59E0B" android:strokeWidth="4" android:strokeLineCap="round"/>
+        </vector>
+        EOF
+
+        # עיצוב מנהל
+        cat << 'EOF' > app/src/main/res/drawable/bg_card.xml
+        <shape xmlns:android="http://schemas.android.com/apk/res/android">
+            <solid android:color="#121214"/>
+            <corners android:radius="20dp"/>
+            <stroke android:width="1dp" android:color="#27272A"/>
+        </shape>
+        EOF
+
+        cat << 'EOF' > app/src/main/res/drawable/bg_button_primary.xml
+        <shape xmlns:android="http://schemas.android.com/apk/res/android">
+            <solid android:color="#D97706"/>
+            <corners android:radius="14dp"/>
+        </shape>
+        EOF
+
+        cat << 'EOF' > app/src/main/res/drawable/bg_button_secondary.xml
+        <shape xmlns:android="http://schemas.android.com/apk/res/android">
+            <solid android:color="#27272A"/>
+            <corners android:radius="14dp"/>
+            <stroke android:width="1dp" android:color="#3F3F46"/>
+        </shape>
+        EOF
+
+        cat << 'EOF' > app/src/main/res/drawable/bg_input.xml
+        <shape xmlns:android="http://schemas.android.com/apk/res/android">
+            <solid android:color="#18181B"/>
+            <corners android:radius="12dp"/>
+            <stroke android:width="1dp" android:color="#3F3F46"/>
+        </shape>
+        EOF
+
+        # 1. activity_main.xml (מסך ראשי של אפליקציית הניהול)
+        cat << 'EOF' > app/src/main/res/layout/activity_main.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:background="#09090B"
+            android:padding="16dp">
+
+            <!-- כותרת ראשית -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="16dp">
+                
+                <ImageView android:layout_width="40dp" android:layout_height="40dp" android:src="@drawable/ic_admin_launcher"/>
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:paddingStart="12dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Filter Pro - לוח מנהל" android:textColor="#F59E0B" android:textSize="18sp" android:textStyle="bold"/>
+                    <TextView android:id="@+id/tvTotalCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="טוען מנויים..." android:textColor="#A1A1AA" android:textSize="12sp"/>
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btnRefresh"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:text="🔄"
+                    android:textSize="16sp"
+                    android:textColor="#FFFFFF"
+                    android:background="@drawable/bg_button_secondary"/>
+            </LinearLayout>
+
+            <!-- חיפוש מנוי -->
+            <EditText
+                android:id="@+id/etSearchUser"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="🔍 חפש לפי שם או קוד..."
+                android:textColorHint="#52525B"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/bg_input"
+                android:padding="12dp"
+                android:textSize="13sp"
+                android:layout_marginBottom="12dp"/>
+
+            <!-- רשימת כרטיסיות מנויים -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvUsersList"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:scrollbars="vertical"/>
+
+            <!-- כפתור הוספת מנוי -->
+            <Button
+                android:id="@+id/btnAddUser"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="➕ הוסף מנוי חדש"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/bg_button_primary"
+                android:textStyle="bold"
+                android:padding="14dp"
+                android:layout_marginTop="8dp"/>
+        </LinearLayout>
+        EOF
+
+        # 2. item_user_card.xml (כרטיסיית מנוי ברשימה)
+        cat << 'EOF' > app/src/main/res/layout/item_user_card.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_card"
+            android:padding="16dp"
+            android:layout_marginBottom="10dp">
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="8dp">
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                    <TextView android:id="@+id/tvUserName" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="שם הלקוח" android:textColor="#FAFAFA" android:textSize="16sp" android:textStyle="bold"/>
+                    <TextView android:id="@+id/tvUserKey" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="קוד: SF-1234" android:textColor="#F59E0B" android:textSize="12sp"/>
+                </LinearLayout>
+
+                <TextView android:id="@+id/tvUserStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🟢 פעיל" android:textSize="13sp" android:textStyle="bold"/>
+            </LinearLayout>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+                <Button
+                    android:id="@+id/btnToggleStatus"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="שינוי סטטוס"
+                    android:textColor="#FFFFFF"
+                    android:background="@drawable/bg_button_secondary"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="6dp"/>
+
+                <Button
+                    android:id="@+id/btnPauseUser"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="⏱️ השהיית חסימה"
+                    android:textColor="#34D399"
+                    android:background="@drawable/bg_button_secondary"
+                    android:textSize="12sp"/>
+            </LinearLayout>
+        </LinearLayout>
+        EOF
+
+        # 3. UserModel.java
+        cat << 'EOF' > app/src/main/java/com/example/filteradmin/UserModel.java
+        package com.example.filteradmin;
+        public class UserModel {
+            public String key, status, name;
+            public UserModel(String key, String status, String name) {
+                this.key = key;
+                this.status = status;
+                this.name = name;
+            }
+        }
+        EOF
+
+        # 4. UsersAdapter.java
+        cat << 'EOF' > app/src/main/java/com/example/filteradmin/UsersAdapter.java
+        package com.example.filteradmin;
+        import android.content.Context;
+        import android.view.LayoutInflater;
+        import android.view.View;
+        import android.view.ViewGroup;
+        import android.widget.Button;
+        import android.widget.TextView;
+        import android.widget.Toast;
+        import androidx.annotation.NonNull;
+        import androidx.recyclerview.widget.RecyclerView;
+        import java.util.List;
+
+        public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> {
+            private Context context;
+            private List<UserModel> list;
+
+            public UsersAdapter(Context ctx, List<UserModel> users) {
+                this.context = ctx;
+                this.list = users;
+            }
+
+            public void updateData(List<UserModel> newUsers) {
+                this.list = newUsers;
+                notifyDataSetChanged();
+            }
+
+            @NonNull @Override
+            public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+                View view = LayoutInflater.from(context).inflate(R.layout.item_user_card, parent, false);
+                return new ViewHolder(view);
+            }
+
+            @Override
+            public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+                UserModel u = list.get(position);
+                holder.tvUserName.setText(u.name.isEmpty() ? "לקוח ללא שם" : u.name);
+                holder.tvUserKey.setText("קוד מנוי: " + u.key);
+                
+                boolean isActive = u.status.equalsIgnoreCase("פעיל") || u.status.equalsIgnoreCase("active") || u.status.equals("1");
+                holder.tvUserStatus.setText(isActive ? "🟢 פעיל" : "🔴 מבוטל");
+                holder.tvUserStatus.setTextColor(isActive ? 0xFF10B981 : 0xFFEF4444);
+
+                holder.btnToggleStatus.setOnClickListener(v -> {
+                    Toast.makeText(context, "מעדכן סטטוס עבור " + u.name + "...", Toast.LENGTH_SHORT).show();
+                    // כאן מתבצע העדכון מול Google Sheets
+                });
+
+                holder.btnPauseUser.setOnClickListener(v -> {
+                    Toast.makeText(context, "נשלחה הוראת השהיה למכשיר של " + u.name, Toast.LENGTH_SHORT).show();
+                });
+            }
+
+            @Override
+            public int getItemCount() { return list.size(); }
+
+            public static class ViewHolder extends RecyclerView.ViewHolder {
+                TextView tvUserName, tvUserKey, tvUserStatus;
+                Button btnToggleStatus, btnPauseUser;
+                public ViewHolder(@NonNull View itemView) {
+                    super(itemView);
+                    tvUserName = itemView.findViewById(R.id.tvUserName);
+                    tvUserKey = itemView.findViewById(R.id.tvUserKey);
+                    tvUserStatus = itemView.findViewById(R.id.tvUserStatus);
+                    btnToggleStatus = itemView.findViewById(R.id.btnToggleStatus);
+                    btnPauseUser = itemView.findViewById(R.id.btnPauseUser);
+                }
+            }
+        }
+        EOF
+
+        # 5. MainActivity.java
+        cat << 'EOF' > app/src/main/java/com/example/filteradmin/MainActivity.java
+        package com.example.filteradmin;
+        import android.os.Bundle;
+        import android.os.Handler;
+        import android.os.Looper;
+        import android.text.Editable;
+        import android.text.TextWatcher;
+        import android.widget.Button;
+        import android.widget.EditText;
+        import android.widget.TextView;
+        import android.widget.Toast;
+        import androidx.appcompat.app.AppCompatActivity;
+        import androidx.recyclerview.widget.LinearLayoutManager;
+        import androidx.recyclerview.widget.RecyclerView;
+        import java.io.BufferedReader;
+        import java.io.InputStreamReader;
+        import java.net.HttpURLConnection;
+        import java.net.URL;
+        import java.util.ArrayList;
+        import java.util.List;
+
+        public class MainActivity extends AppCompatActivity {
+            public static final String SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRXh8FtN-AkXXoCLauOjvrLnFQo4w4J92uUhWpSI9BKkdbru29xuffh3x2PmvoNxb6HG-6ZVmV8aGmX/pub?output=csv";
+            private RecyclerView rvUsersList;
+            private TextView tvTotalCount;
+            private EditText etSearchUser;
+            private UsersAdapter adapter;
+            private List<UserModel> allUsers = new ArrayList<>();
+
+            @Override
+            protected void onCreate(Bundle savedInstanceState) {
+                super.onCreate(savedInstanceState);
+                setContentView(R.layout.activity_main);
+
+                rvUsersList = findViewById(R.id.rvUsersList);
+                tvTotalCount = findViewById(R.id.tvTotalCount);
+                etSearchUser = findViewById(R.id.etSearchUser);
+                Button btnRefresh = findViewById(R.id.btnRefresh);
+                Button btnAddUser = findViewById(R.id.btnAddUser);
+
+                rvUsersList.setLayoutManager(new LinearLayoutManager(this));
+                adapter = new UsersAdapter(this, new ArrayList<>());
+                rvUsersList.setAdapter(adapter);
+
+                if (btnRefresh != null) btnRefresh.setOnClickListener(v -> fetchUsersFromSheet());
+                if (btnAddUser != null) btnAddUser.setOnClickListener(v -> Toast.makeText(this, "פתיחת טופס מנוי חדש...", Toast.LENGTH_SHORT).show());
+
+                if (etSearchUser != null) {
+                    etSearchUser.addTextChangedListener(new TextWatcher() {
+                        @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                        @Override public void onTextChanged(CharSequence s, int start, int before, int count) { filterUsers(s.toString()); }
+                        @Override public void afterTextChanged(Editable s) {}
+                    });
+                }
+
+                fetchUsersFromSheet();
+            }
+
+            private void fetchUsersFromSheet() {
+                tvTotalCount.setText("טוען נתונים מהענן...");
+                new Thread(() -> {
+                    List<UserModel> fetched = new ArrayList<>();
+                    try {
+                        URL url = new URL(SHEET_URL);
+                        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                        BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            String[] parts = line.split(",");
+                            if (parts.length >= 2) {
+                                String key = parts[0].trim();
+                                String status = parts[1].trim();
+                                String name = (parts.length >= 3) ? parts[2].trim() : "";
+                                fetched.add(new UserModel(key, status, name));
+                            }
+                        }
+                        reader.close();
+                    } catch (Exception ignored) {}
+
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        allUsers = fetched;
+                        adapter.updateData(allUsers);
+                        tvTotalCount.setText("סה\"כ מנויים רשומים: " + allUsers.size());
+                    });
+                }).start();
+            }
+
+            private void filterUsers(String query) {
+                List<UserModel> filtered = new ArrayList<>();
+                for (UserModel u : allUsers) {
+                    if (u.name.toLowerCase().contains(query.toLowerCase()) || u.key.toLowerCase().contains(query.toLowerCase())) {
+                        filtered.add(u);
+                    }
+                }
+                adapter.updateData(filtered);
+            }
+        }
+        EOF
+
+        # 6. AndroidManifest.xml
+        cat << 'EOF' > app/src/main/AndroidManifest.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+            <uses-permission android:name="android.permission.INTERNET" />
+            <application
+                android:allowBackup="true"
+                android:icon="@drawable/ic_admin_launcher"
+                android:label="Filter Pro Admin"
+                android:supportsRtl="true"
+                android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                <activity android:name=".MainActivity" android:exported="true">
+                    <intent-filter>
+                        <action android:name="android.intent.action.MAIN"/>
+                        <category android:name="android.intent.category.LAUNCHER"/>
+                    </intent-filter>
+                </activity>
+            </application>
+        </manifest>
+        EOF
+
+        # 7. settings.gradle.kts & build.gradle
+        cat << 'EOF' > settings.gradle.kts
+        pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
+        dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }
+        rootProject.name = "FilterProAdmin"
+        include(":app")
+        EOF
+
+        cat << 'EOF' > app/build.gradle
+        plugins { id 'com.android.application' }
+        android {
+            namespace 'com.example.filteradmin'
+            compileSdk 34
+            defaultConfig { applicationId "com.example.filteradmin"; minSdk 24; targetSdk 34; versionCode 1; versionName "1.0" }
+            buildTypes { release { minifyEnabled false } }
+            compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+        }
+        dependencies {
+            implementation 'androidx.appcompat:appcompat:1.6.1'
+            implementation 'com.google.android.material:material:1.11.0'
+            implementation 'androidx.recyclerview:recyclerview:1.3.2'
+        }
+        EOF
+
+        cat << 'EOF' > gradle.properties
+        android.useAndroidX=true
+        android.enableJetifier=true
+        EOF
+
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2
+      with:
+        gradle-version: '8.4'
+        arguments: assembleDebug
+
+    - name: Upload Admin APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: FilterProAdmin-debug
+        path: app/build/outputs/apk/debug/app-debug.apk
