@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Filter Pro - ניהול לקוחות</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Assistant', sans-serif; background-color: #09090b; color: #f4f4f5; }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- כותרת עליונה -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 bg-[#121214] border border-[#27272a] p-6 rounded-2xl shadow-xl">
+            <div>
+                <h1 class="text-3xl font-bold text-[#34d399] flex items-center gap-2">🛡️ Filter Pro - ממשק ניהול</h1>
+                <p class="text-zinc-400 text-sm mt-1">ניהול מלא של הלקוחות, הקודים והפעלת הסינון ישירות מהענן</p>
+            </div>
+            <div class="mt-4 md:mt-0 flex gap-3">
+                <button onclick="loadUsers()" class="bg-[#27272a] hover:bg-[#3f3f46] text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition flex items-center gap-2 border border-[#3f3f46]">
+                    🔄 רענן נתונים
+                </button>
+                <button onclick="openAddModal()" class="bg-[#059669] hover:bg-[#047857] text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition shadow-lg shadow-emerald-900/20 flex items-center gap-2">
+                    ➕ הוסף לקוח חדש
+                </button>
+            </div>
+        </header>
+
+        <!-- תיבת חיפוש -->
+        <div class="mb-6">
+            <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="🔍 חיפוש מהיר לפי שם, טלפון, מייל או קוד..." class="w-full bg-[#121214] border border-[#27272a] focus:border-[#34d399] rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none transition">
+        </div>
+
+        <!-- טבלת לקוחות -->
+        <div class="bg-[#121214] border border-[#27272a] rounded-2xl shadow-xl overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-right border-collapse">
+                    <thead>
+                        <tr class="bg-[#18181b] border-b border-[#27272a] text-zinc-400 text-xs uppercase tracking-wider">
+                            <th class="p-4">סטטוס סינון</th>
+                            <th class="p-4">שם מלא</th>
+                            <th class="p-4">קוד הפעלה</th>
+                            <th class="p-4">טלפון</th>
+                            <th class="p-4">מייל</th>
+                            <th class="p-4 text-center">מספר שורה</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody" class="divide-y divide-[#27272a] text-sm">
+                        <tr>
+                            <td colspan="6" class="text-center p-8 text-zinc-500">טוען נתונים מהענן...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- מודל הוספת לקוח -->
+    <div id="addModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-[#121214] border border-[#27272a] rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <h2 class="text-xl font-bold text-[#34d399] mb-4">➕ הוספת לקוח חדש</h2>
+            <form id="addUserForm" onsubmit="addUser(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs text-zinc-400 mb-1">קוד הפעלה (חובה)</label>
+                    <input type="text" id="newKey" required class="w-full bg-[#18181b] border border-[#27272a] rounded-xl p-3 text-white text-sm outline-none focus:border-[#34d399]">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-zinc-400 mb-1">שם פרטי</label>
+                        <input type="text" id="newFirstName" required class="w-full bg-[#18181b] border border-[#27272a] rounded-xl p-3 text-white text-sm outline-none focus:border-[#34d399]">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-zinc-400 mb-1">שם משפחה</label>
+                        <input type="text" id="newLastName" required class="w-full bg-[#18181b] border border-[#27272a] rounded-xl p-3 text-white text-sm outline-none focus:border-[#34d399]">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs text-zinc-400 mb-1">טלפון</label>
+                    <input type="tel" id="newPhone" required class="w-full bg-[#18181b] border border-[#27272a] rounded-xl p-3 text-white text-sm outline-none focus:border-[#34d399]">
+                </div>
+                <div>
+                    <label class="block text-xs text-zinc-400 mb-1">מייל</label>
+                    <input type="email" id="newEmail" required class="w-full bg-[#18181b] border border-[#27272a] rounded-xl p-3 text-white text-sm outline-none focus:border-[#34d399]">
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="closeAddModal()" class="bg-[#27272a] text-zinc-300 px-4 py-2.5 rounded-xl text-sm font-semibold">ביטול</button>
+                    <button type="submit" class="bg-[#059669] hover:bg-[#047857] text-white px-5 py-2.5 rounded-xl text-sm font-semibold">שמור לקוח</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- הודעת הצלחה צפה -->
+    <div id="toast" class="fixed bottom-5 left-5 bg-[#059669] text-white px-5 py-3 rounded-xl shadow-xl transition-all duration-300 transform translate-y-20 opacity-0 font-semibold text-sm">
+        הפעולה בוצעה בהצלחה!
+    </div>
+
+    <script>
+        // הקישור המעודכן שלך ל-Apps Script מוטמע כאן:
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyaQgkQ3zBz1N1xx-ZJGMvpn4TikfkmSSpJlEHAujW4kcepFG05IC484BJBbWybNQaewQ/exec";
+        
+        let allUsers = [];
+
+        window.onload = function() {
+            loadUsers();
+        };
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                t.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        async function loadUsers() {
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center p-8 text-zinc-500">טוען נתונים מהענן...</td></tr>`;
+            try {
+                const res = await fetch(WEB_APP_URL + "?action=getUsers");
+                allUsers = await res.json();
+                renderTable(allUsers);
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center p-8 text-red-400">שגיאה בטעינת הנתונים מהענן. בדוק את חיבור האינטרנט או הגדרות הסקריפט.</td></tr>`;
+            }
+        }
+
+        function renderTable(users) {
+            const tbody = document.getElementById('usersTableBody');
+            if (!users || users.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center p-8 text-zinc-500">לא נמצאו לקוחות במערכת.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = users.map(u => {
+                const isActive = u.status.trim() === "פעיל";
+                return `
+                    <tr class="hover:bg-[#18181b] transition">
+                        <td class="p-4">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleUserStatus(${u.row}, this)" class="sr-only peer">
+                                <div class="w-11 h-6 bg-[#27272a] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#059669]"></div>
+                                <span class="mr-3 text-xs font-semibold ${isActive ? 'text-[#34d399]' : 'text-red-400'}">${u.status}</span>
+                            </label>
+                        </td>
+                        <td class="p-4 font-semibold text-white">${u.firstName} ${u.lastName}</td>
+                        <td class="p-4">
+                            <div class="flex items-center gap-2">
+                                <code class="bg-[#18181b] border border-[#27272a] px-2 py-1 rounded text-xs text-[#34d399] font-mono">${u.key}</code>
+                                <button onclick="copyText('${u.key}', 'הקוד הועתק ללוח!')" class="text-zinc-400 hover:text-white text-xs bg-[#27272a] hover:bg-[#3f3f46] px-2 py-1 rounded transition">📋 העתק</button>
+                            </div>
+                        </td>
+                        <td class="p-4">
+                            <div class="flex items-center gap-2">
+                                <span>${u.phone}</span>
+                                ${u.phone ? `
+                                    <a href="tel:${u.phone}" class="bg-[#27272a] hover:bg-[#3f3f46] text-white p-1.5 rounded-lg text-xs transition" title="חייג ללקוח">📞</a>
+                                    <a href="https://wa.me/${u.phone.replace(/[^0-9]/g, '')}" target="_blank" class="bg-[#059669]/20 hover:bg-[#059669]/40 text-[#34d399] p-1.5 rounded-lg text-xs transition" title="שלח הודעת וואטסאפ">💬</a>
+                                ` : ''}
+                            </div>
+                        </td>
+                        <td class="p-4">
+                            <div class="flex items-center gap-2">
+                                <span class="truncate max-w-[150px]">${u.email}</span>
+                                ${u.email ? `<a href="mailto:${u.email}" class="bg-[#27272a] hover:bg-[#3f3f46] text-white p-1.5 rounded-lg text-xs transition" title="שלח דוא''ל">✉️</a>` : ''}
+                            </div>
+                        </td>
+                        <td class="p-4 text-center">
+                            <span class="text-xs text-zinc-500 font-mono">#${u.row}</span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function toggleUserStatus(row, checkbox) {
+            const newStatus = checkbox.checked ? "פעיל" : "מבוטל";
+            const labelSpan = checkbox.parentElement.querySelector('span');
+            labelSpan.innerText = newStatus;
+            labelSpan.className = `mr-3 text-xs font-semibold ${newStatus === 'פעיל' ? 'text-[#34d399]' : 'text-red-400'}`;
+
+            try {
+                await fetch(WEB_APP_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ action: "toggleStatus", row: row, status: newStatus })
+                });
+                showToast("הסטטוס עודכן בגיליון בהצלחה!");
+            } catch (err) {
+                alert("שגיאה בעדכון הסטטוס מול השרת");
+            }
+        }
+
+        function filterTable() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allUsers.filter(u => 
+                u.firstName.toLowerCase().includes(query) ||
+                u.lastName.toLowerCase().includes(query) ||
+                u.phone.toLowerCase().includes(query) ||
+                u.email.toLowerCase().includes(query) ||
+                u.key.toLowerCase().includes(query)
+            );
+            renderTable(filtered);
+        }
+
+        function copyText(text, msg) {
+            navigator.clipboard.writeText(text);
+            showToast(msg);
+        }
+
+        function openAddModal() {
+            document.getElementById('addModal').classList.remove('hidden');
+            document.getElementById('addModal').classList.add('flex');
+        }
+
+        function closeAddModal() {
+            document.getElementById('addModal').classList.remove('flex');
+            document.getElementById('addModal').classList.add('hidden');
+            document.getElementById('addUserForm').reset();
+        }
+
+        async function addUser(e) {
+            e.preventDefault();
+            const payload = {
+                action: "addUser",
+                key: document.getElementById('newKey').value,
+                firstName: document.getElementById('newFirstName').value,
+                lastName: document.getElementById('newLastName').value,
+                phone: document.getElementById('newPhone').value,
+                email: document.getElementById('newEmail').value
+            };
+
+            try {
+                await fetch(WEB_APP_URL, {
+                    method: "POST",
+                    body: JSON.stringify(payload)
+                });
+                closeAddModal();
+                showToast("הלקוח נוסף בהצלחה!");
+                loadUsers();
+            } catch (err) {
+                alert("שגיאה בהוספת הלקוח");
+            }
+        }
+    </script>
+</body>
+</html>
